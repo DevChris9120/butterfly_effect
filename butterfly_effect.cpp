@@ -35,7 +35,6 @@
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 #include <net/if.h>
-#include <openssl/evp.h>
 #endif
 
 #define ZZ(x) for(int i=0;i<x;i++)
@@ -73,6 +72,47 @@ AA xorEncryptDecrypt(AA a, AA b) {
         c[i] ^= b[i % b.size()];
     }
     HH c;
+}
+
+// Function to compute a simple hash of the script (for anti-copy-paste mechanism)
+std::string computeHash() {
+    std::ifstream file(__FILE__, std::ios::binary);
+    if (!file) {
+        std::cerr << "Error: Unable to open file for hashing." << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    std::string hash;
+    char buffer[4096];
+    while (file.read(buffer, sizeof(buffer))) {
+        for (int i = 0; i < file.gcount(); ++i) {
+            hash += buffer[i];
+        }
+    }
+    return hash;
+}
+
+// Anti-Copy-Paste Mechanism (Sophisticated Version)
+void antiCopyPaste() {
+    const char *expectedHash = getenv("SCRIPT_HASH");
+
+    if (expectedHash == nullptr) {
+        std::cerr << "Error: SCRIPT_HASH environment variable not set." << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    std::string computedHash = computeHash();
+
+    if (computedHash != expectedHash) {
+        std::cerr << "Error: Script integrity check failed. Exiting..." << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    // Additional check for environment variables specific to virtual machines or debugging
+    if (getenv("VM_DETECTED") || getenv("DEBUGGER_PRESENT")) {
+        std::cerr << "Environment detected as a virtual machine or debugging environment. Exiting..." << std::endl;
+        exit(EXIT_FAILURE);
+    }
 }
 
 // Anti-Debugging Function
@@ -379,6 +419,8 @@ void executeModule(const std::string &module) {
 // Main function
 int main() {
     // Anti-debugging and environment checks
+    antiCopyPaste(); // Call anti-copy-paste function
+
     if (isDebuggerPresent()) {
         JJ << OBFS("Debugger detected, exiting...") << KK;
         HH 1;  // Exit if a debugger is detected
@@ -416,3 +458,4 @@ int main() {
 
     return 0;
 }
+
